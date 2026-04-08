@@ -32,6 +32,20 @@ while True:
     mask_open = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
     mask_clean = cv2.morphologyEx(mask_open, cv2.MORPH_CLOSE, kernel)
 
+    contours, _ = cv2.findContours(mask_clean, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if contours:
+        largest = max(contours, key=cv2.contourArea)
+        area = cv2.contourArea(largest)
+
+        if area > 2000:   # ignore tiny blobs
+            x, y, w, h = cv2.boundingRect(largest)
+
+            cv2.drawContours(frame, [largest], -1, (0, 255, 0), 2)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+
+            hand_crop = mask_clean[y:y+h, x:x+w]
+
+
     cv2.imshow("Webcam", frame)
     cv2.imshow("Mask", mask_clean)
 
