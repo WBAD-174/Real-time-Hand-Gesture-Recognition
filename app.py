@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import math
-
+from collections import deque
 
 def count_fingers(contour, hull_indices, min_defect_depth=15000):
     """Count extended fingers using convexity defects."""
@@ -68,6 +68,8 @@ if not cap.isOpened():
     print("Could not open webcam")
     exit()
 
+bbox_history = deque(maxlen=10)    
+
 while True:
     ret, frame = cap.read()
     if not ret:
@@ -96,6 +98,13 @@ while True:
         if area > 2000:
             x, y, w, h = cv2.boundingRect(largest)
 
+            bbox_history.append((x, y, w, h))
+
+            sx = int(np.mean([b[0] for b in bbox_history]))
+            sy = int(np.mean([b[1] for b in bbox_history]))
+            sw = int(np.mean([b[2] for b in bbox_history]))
+            sh = int(np.mean([b[3] for b in bbox_history]))
+
             # Draw contour and convex hull
             hull_pts = cv2.convexHull(largest)
             cv2.drawContours(frame, [largest],  -1, (0, 255, 0), 2)   # green = contour
@@ -118,7 +127,7 @@ while True:
                         (x, max(y - 10, 20)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
 
             # Isolated hand shape window
-            hand_crop    = mask_clean[y:y+h, x:x+w]
+            hand_crop = mask_clean[sy:sy+sh, sx:sx+sw]
             hand_resized = cv2.resize(hand_crop, (200, 200))
             cv2.imshow("Hand Shape", hand_resized)
 
