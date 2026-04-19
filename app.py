@@ -68,7 +68,12 @@ if not cap.isOpened():
     print("Could not open webcam")
     exit()
 
+
 bbox_history = deque(maxlen=10)    
+fourcc = cv2.VideoWriter_fourcc(*'XVID')
+out = None
+recording = False
+
 
 while True:
     ret, frame = cap.read()
@@ -134,11 +139,27 @@ while True:
     cv2.putText(frame, sign_label, (20, 50),
                 cv2.FONT_HERSHEY_SIMPLEX, 1.4, (0, 255, 255), 3)
 
+    if recording:
+        out.write(frame)
+        cv2.circle(frame, (620, 20), 8, (0, 0, 255), -1)  # red dot indicator
+
     cv2.imshow("Webcam", frame)
     cv2.imshow("Mask", mask_clean)
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('r'):
+        recording = not recording
+        if recording:
+            out = cv2.VideoWriter('output.avi', fourcc, 30, (640, 480))
+            print("Recording started: output.avi")
+        else:
+            out.release()
+            out = None
+            print("Recording stopped")
+    if key == ord('q'):
         break
 
+if out is not None:
+    out.release()
 cap.release()
 cv2.destroyAllWindows()
