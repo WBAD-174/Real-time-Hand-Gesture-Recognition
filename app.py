@@ -83,6 +83,15 @@ move_step = 20
 resize_step = 20
 min_roi_size = 120
 
+cv2.namedWindow("Trackbars")
+
+cv2.createTrackbar("H_min", "Trackbars", 0, 179, lambda x: None)
+cv2.createTrackbar("H_max", "Trackbars", 20, 179, lambda x: None)
+cv2.createTrackbar("S_min", "Trackbars", 15, 255, lambda x: None)
+cv2.createTrackbar("S_max", "Trackbars", 150, 255, lambda x: None)
+cv2.createTrackbar("V_min", "Trackbars", 20, 255, lambda x: None)
+cv2.createTrackbar("V_max", "Trackbars", 255, 255, lambda x: None)
+
 while True:
     ret, frame = cap.read()
     if not ret:
@@ -105,8 +114,15 @@ while True:
     blured = cv2.GaussianBlur(roi, (5, 5), 0)
     hsv = cv2.cvtColor(blured, cv2.COLOR_BGR2HSV)
 
-    lower = np.array([0, 15, 20])
-    upper = np.array([20, 150, 255])
+    h_min = cv2.getTrackbarPos("H_min", "Trackbars")
+    h_max = cv2.getTrackbarPos("H_max", "Trackbars")
+    s_min = cv2.getTrackbarPos("S_min", "Trackbars")
+    s_max = cv2.getTrackbarPos("S_max", "Trackbars")
+    v_min = cv2.getTrackbarPos("V_min", "Trackbars")
+    v_max = cv2.getTrackbarPos("V_max", "Trackbars")
+
+    lower = np.array([h_min, s_min, v_min])
+    upper = np.array([h_max, s_max, v_max])
     mask = cv2.inRange(hsv, lower, upper)
 
     kernel = np.ones((3, 3), np.uint8)
@@ -160,6 +176,9 @@ while True:
 
     cv2.putText(frame, sign_label, (20, 50),
                 cv2.FONT_HERSHEY_SIMPLEX, 1.4, (0, 255, 255), 3)
+    
+    cv2.putText(frame, f"H:[{h_min},{h_max}] S:[{s_min},{s_max}] V:[{v_min},{v_max}]",
+            (10, 470), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
     if recording:
         out.write(frame)
@@ -200,6 +219,10 @@ while True:
             print("Recording stopped")
     elif key == ord('q'):
         break
+    elif key == ord('p'):
+        print("Current HSV:")
+        print(f"lower = np.array([{h_min}, {s_min}, {v_min}])")
+        print(f"upper = np.array([{h_max}, {s_max}, {v_max}])")
 
 if out is not None:
     out.release()
