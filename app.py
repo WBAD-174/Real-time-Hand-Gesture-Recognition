@@ -74,6 +74,14 @@ fourcc = cv2.VideoWriter_fourcc(*'XVID')
 out = None
 recording = False
 
+roi_x = 180
+roi_y = 100
+roi_w = 280
+roi_h = 280
+move_step = 20
+
+resize_step = 20
+min_roi_size = 120
 
 while True:
     ret, frame = cap.read()
@@ -82,7 +90,19 @@ while True:
 
     frame = cv2.flip(frame, 1)
     frame = cv2.resize(frame, (640, 480))
-    blured = cv2.GaussianBlur(frame, (5, 5), 0)
+
+    cv2.rectangle(frame, (roi_x, roi_y), (roi_x + roi_w, roi_y + roi_h), (0, 255, 0), 2)
+    cv2.putText(frame, "ROI", (roi_x, max(roi_y - 10, 20)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+
+    roi_x = max(0, min(roi_x, 640 - roi_w))
+    roi_y = max(0, min(roi_y, 480 - roi_h))
+
+    roi_w = max(min_roi_size, min(roi_w, 640 - roi_x))
+    roi_h = max(min_roi_size, min(roi_h, 480 - roi_y))
+
+    roi = frame[roi_y:roi_y + roi_h, roi_x:roi_x + roi_w]
+
+    blured = cv2.GaussianBlur(roi, (5, 5), 0)
     hsv = cv2.cvtColor(blured, cv2.COLOR_BGR2HSV)
 
     lower = np.array([0, 15, 20])
@@ -111,10 +131,12 @@ while True:
             sh = int(np.mean([b[3] for b in bbox_history]))
 
             # Draw contour and convex hull
+            largest_shifted = largest + np.array([[[roi_x, roi_y]]])
             hull_pts = cv2.convexHull(largest)
-            cv2.drawContours(frame, [largest],  -1, (0, 255, 0), 2)   # green = contour
-            cv2.drawContours(frame, [hull_pts], -1, (0, 0, 255), 2)   # red   = hull
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+            hull_pts_shift = hull_pts + np.array([[[roi_x, roi_y]]])
+            cv2.drawContours(frame, [largest_shifted],  -1, (0, 255, 0), 2)   # green = contour
+            cv2.drawContours(frame, [hull_pts_shift], -1, (0, 0, 255), 2)   # red   = hull
+            cv2.rectangle(frame, (roi_x + x,roi_y + y), (roi_x + x + w, roi_y + y + h), (255, 0, 0), 2)
 
             # Geometry features
             hull_area    = cv2.contourArea(hull_pts)
@@ -147,7 +169,27 @@ while True:
     cv2.imshow("Mask", mask_clean)
 
     key = cv2.waitKey(1) & 0xFF
-    if key == ord('r'):
+    if key == ord('q'):
+        break
+    if key == ord('w'):
+        roi_y -= move_step
+    elif key == ord('s'):
+        roi_y += move_step
+    elif key == ord('a'):
+        roi_x -= move_step
+    elif key == ord('d'):
+        roi_x += move_step
+    elif key == ord('+') or key == ord('='):
+        roi_x -= resize_step // 2
+        roi_y -= resize_step // 2
+        roi_w += resize_step
+        roi_h += resize_step
+    elif key == ord('-') or key == ord('_'):
+        roi_x += resize_step // 2
+        roi_y += resize_step // 2
+        roi_w -= resize_step
+        roi_h -= resize_step
+    elif key == ord('r'):
         recording = not recording
         if recording:
             out = cv2.VideoWriter('output.avi', fourcc, 30, (640, 480))
@@ -156,7 +198,7 @@ while True:
             out.release()
             out = None
             print("Recording stopped")
-    if key == ord('q'):
+    elif key == ord('q'):
         break
 
 if out is not None:
