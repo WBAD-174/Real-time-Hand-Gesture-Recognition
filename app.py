@@ -184,6 +184,10 @@ while True:
         out.write(frame)
         cv2.circle(frame, (620, 20), 8, (0, 0, 255), -1)  # red dot indicator
 
+    if recording:
+        out.write(frame)
+        cv2.circle(frame, (620, 20), 8, (0, 0, 255), -1)  # red dot indicator
+
     cv2.imshow("Webcam", frame)
     cv2.imshow("Mask", mask_clean)
 
